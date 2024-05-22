@@ -1,0 +1,7 @@
+#O github vai ignorar todos os arquivos, ou seja, não vão mais ser monitorados
+.venv
+.env
+env/
+venv/
+ENV/
+VENV/
