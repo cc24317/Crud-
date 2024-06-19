@@ -1,4 +1,4 @@
-import pandas
+import pandas as pd
 import pyodbc
 
 def connect() -> bool: #Função para conectar o banco de dados com o programa
@@ -17,52 +17,56 @@ def connect() -> bool: #Função para conectar o banco de dados com o programa
         print(f"Erro ao conectar: {str(e)}")
         return False #Retorna falso se acontecer algum erro na conexão 
     
-def planilha(): #Função para gerar planilha com os dados correspondentes ao banco de dados conectado
+def planilha():
     if connect():
         try:
-            cursor1 = connection.cursor()
-            nomeMecanicoQuery = "SELECT * FROM DadosDaRoca.mecanico WHERE nome='nome'"
-            cursor1.execute(nomeMecanicoQuery) #Executa a consulta no SQL definida na variável
-            nomeMecanico = cursor1.fetchall() #Obtém os resultados da consulta e armazana na variável
+            cursor1 = connection.cursor() 
+            cursor1.execute("SELECT nomeMecanico FROM DadosDaRoca.mecanico")
+            nomeMecanico = cursor1.fetchall()[0]  
+            cursor1.close()
 
             cursor2 = connection.cursor()
-            placaVeiculoQuery = "SELECT * FROM DadosDaRoca.veiculo WHERE placa='placa'"
-            cursor2.execute(placaVeiculoQuery)
-            placaVeiculo = cursor2.fetchall()
+            cursor2.execute("SELECT placa FROM DadosDaRoca.veiculo")
+            placaVeiculo = cursor2.fetchall()[0]  
+            cursor2.close()
 
             cursor3 = connection.cursor()
-            ordemServicoQuery = "SELECT * FROM DadosDaRoca.ordemServico WHERE ordemServico='codigoOrdemServico'"
-            cursor3.execute(ordemServicoQuery)
-            ordemServico = cursor3.fetchall()
-
+            cursor3.execute("SELECT tipoManutencao FROM DadosDaRoca.ordemServico")
+            tipoOrdemServico = cursor3.fetchall()[0]  
+            cursor3.close()
+            
             cursor4 = connection.cursor()
-            tipoManutencaoQuery = "SELECT * FROM DadosDaRoca.ordemServico WHERE manutencao='tipoManutencao'"
-            cursor4.execute(tipoManutencaoQuery)
-            tipoManutencao = cursor4.fetchall()
+            cursor4.execute("SELECT numeroOrdemServico FROM DadosDaRoca.ordemServico")
+            numeroOrdemServico = cursor4.fetchall()[0]  
+            cursor4.close()
 
             cursor5 = connection.cursor()
-            horarioExecucaoQuery = "SELECT * FROM DadosDaRoca.ordemServico WHERE horario='horarioInicio'"
-            cursor5.execute(horarioExecucaoQuery)
-            horarioExecucao = cursor5.fetchall()
+            cursor5.execute("SELECT tempoEstimado FROM DadosDaRoca.ordemServico")
+            horarioExecucao = cursor5.fetchall()[0]  
+            cursor5.close()
 
             informacoes = {
                 'Nome do Mecânico': [nomeMecanico],
                 'Número do Veículo': [placaVeiculo],
-                'Tipo da Ordem de Serviço': [ordemServico],
-                'Número da Ordem de Serviço': [tipoManutencao],
+                'Tipo da Ordem de Serviço': [tipoOrdemServico],
+                'Número da Ordem de Serviço': [numeroOrdemServico],
                 'Horário': [horarioExecucao]
             }
 
-            dataframe = pandas.DataFrame(informacoes)
-
-            # Salvando o DataFrame em um arquivo Excel
-            dataframe.to_excel(r'c:\Users\u24317\Desktop\PP\darocaProjeto\Planilha.xlsx', index=False)
+            dataframe = pd.DataFrame(informacoes)
+            dataframe.to_excel('Planilha.xlsx', index=False)
             print("DataFrame salvo na planilha Excel 'Planilha.xlsx'")
 
+            # Fechando cursores e conexão
+            connection.close()
+
         except Exception as e:
-                print(f"Erro ao gerar planilha: {str(e)}")
+            print(f"Erro ao gerar planilha: {str(e)}")
     else:
         print("Não foi possível conectar ao banco de dados.")
+
+if __name__ == "__main__":
+    planilha()
 
     # Salvando o DataFrame em um arquivo CSV
     # df.to_excel('', index=False)
@@ -74,7 +78,7 @@ def escolhaOrdemServico():
 
         # Exemplo de consulta para buscar a próxima ordem de serviço disponível
         cursor.execute("SELECT numeroOrdemServico FROM DadosDaRoca.ordemServico")
-        resultado = cursor.fetchone()
+        resultado = cursor.fetchall()
 
         if resultado:
             return resultado[0]  # Retorna o número da ordem de serviço encontrada
@@ -87,6 +91,7 @@ def escolhaOrdemServico():
 
 # Função para executar a lógica principal do programa
 def container():
+    
     if connect():
         cursor = connection.cursor()
 
