@@ -12,7 +12,7 @@ def connect() -> bool: #Função para conectar o banco de dados com o programa
         uid = "BD24317", #login
         pwd = "BD24317" #senha
         )
-        return True #Retorna veidadeiro se a conexão for bem sucedida
+        return True #Retorna verdadeiro se a conexão for bem sucedida
     except Exception as e:
         print(f"Erro ao conectar: {str(e)}")
         return False #Retorna falso se acontecer algum erro na conexão 
