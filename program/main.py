@@ -1,233 +1,132 @@
+import pandas
 import pyodbc
-def apresenteSe ():
-    print('+-------------------------------------------------------------+')
-    print('|                                                             |')
-    print('| AGENDA PESSOAL DE ANIVERSÁRIOS E FORMAS DE CONTATAR PESSOAS |')
-    print('|                                                             |')
-    print('| Isabelle Souza da Silva                                     |')
-    print('|                                                             |')
-    print('| Versão com banco de dados                                   |')
-    print('|                                                             |')
-    print('+-------------------------------------------------------------+')
 
-def umTexto (solicitacao, mensagem, valido):
-    digitouDireito=False
-    while not digitouDireito:
-        txt=input(solicitacao)
-
-        if txt not in valido:
-            print(mensagem,'- Favor redigitar...')
-        else:
-            digitouDireito=True
-
-    return txt
-
-def opcaoEscolhida (mnu):
-    print ()
-
-    opcoesValidas=[]
-    posicao=0
-    while posicao<len(mnu):
-        print (posicao+1,') ',mnu[posicao],sep='')
-        opcoesValidas.append(str(posicao+1))
-        posicao+=1
-
-    print()
-    return umTexto('Qual é a sua opção? ', 'Opção inválida', opcoesValidas)
-
-def connect() -> bool:
-    
+def connect() -> bool: #Função para conectar o banco de dados com o programa
+    global connection #variavel capaz da ser usada ou modificada em qualquer outra função do código
     try:
-        global connection
+
         connection = pyodbc.connect(
-            driver = "{SQL Server}", #fabricante
-            server = "143.106.250.84", #maquina onde esta o banco de dados
-            database = "BD24317", #banco de dados
-            uid = "BD24317", #LOGIN
-            pwd = "BD24317" #SENHA
+        driver = "{SQL Server}", #fabricante
+        server = "143.106.250.84", #Endereço ip da maquina onde esta o banco de dados
+        database = "BD24317", #banco de dados que será acessado
+        uid = "BD24317", #login
+        pwd = "BD24317" #senha
         )
-        return True
-    except:
-        return False
-
-def esta_cadastrado (nom):
-    # cursor e um objeto que permite que 
-    #nosso programa executre comandos SQL
-    #la no sevidor
-    cursor = connection.cursor()
+        return True #Retorna veidadeiro se a conexão for bem sucedida
+    except Exception as e:
+        print(f"Erro ao conectar: {str(e)}")
+        return False #Retorna falso se acontecer algum erro na conexão 
     
-    command = f"SELECT * FROM crud.contatos WHERE nome='{nom}'"
-        
-    try:
-        #tentar executar o comando no banco de dados
-        cursor.execute(command)
-        #como select não altera nada no BD, não faz sentido pensar
-        #em aplicar as alterações; por isso não tem cursor.commit()
-        dados_selecionados=cursor.fetchall() #fetchall da uma listona
-                                             #contendo 0 ou mais listinhas;
-                                             #cada listinha seria uma linha
-                                             #trazida pelo select;
-                                             #neste caso, dará uma listona
-                                             #contendo 0 ou 1 listinha(s);
-                                             #isso pq ou nao tem o nome
-                                             #procurado, ou tem 1 só vez
-        return [True,dados_selecionados]
-    except:
-        #em caso de erro ele vai retornar falso 
-        return [False,[]]
+def planilha(): #Função para gerar planilha com os dados correspondentes ao banco de dados conectado
+    if connect():
+        try:
+            cursor1 = connection.cursor()
+            nomeMecanicoQuery = "SELECT * FROM DadosDaRoca.mecanico WHERE nome='nome'"
+            cursor1.execute(nomeMecanicoQuery) #Executa a consulta no SQL definida na variável
+            nomeMecanico = cursor1.fetchall() #Obtém os resultados da consulta e armazana na variável
 
-def incluir ():
-    digitouDireito=False
-    while not digitouDireito:
-        nome=input('\nNome.......: ')
+            cursor2 = connection.cursor()
+            placaVeiculoQuery = "SELECT * FROM DadosDaRoca.veiculo WHERE placa='placa'"
+            cursor2.execute(placaVeiculoQuery)
+            placaVeiculo = cursor2.fetchall()
 
-        resposta=esta_cadastrado(nome)
-        sucessoNoAcessoAoBD = resposta[0]
-        dados_selecionados  = resposta[1]
+            cursor3 = connection.cursor()
+            ordemServicoQuery = "SELECT * FROM DadosDaRoca.ordemServico WHERE ordemServico='codigoOrdemServico'"
+            cursor3.execute(ordemServicoQuery)
+            ordemServico = cursor3.fetchall()
 
-        if not sucessoNoAcessoAoBD or dados_selecionados!=[]:
-            print ('Pessoa já existente - Favor redigitar...')
-        else:
-            digitouDireito=True
-            
-    aniversario=input('Aniversário: ')
-    endereco   =input('Endereço...: ')
-    telefone   =input('Telefone...: ')
-    celular    =input('Celular....: ')
-    email      =input('e-mail.....: ')
-    
-    try:
-        # cursor e um objeto que permite que 
-        #nosso programa executre comandos SQL
-        #la no sevidor
+            cursor4 = connection.cursor()
+            tipoManutencaoQuery = "SELECT * FROM DadosDaRoca.ordemServico WHERE manutencao='tipoManutencao'"
+            cursor4.execute(tipoManutencaoQuery)
+            tipoManutencao = cursor4.fetchall()
+
+            cursor5 = connection.cursor()
+            horarioExecucaoQuery = "SELECT * FROM DadosDaRoca.ordemServico WHERE horario='horarioInicio'"
+            cursor5.execute(horarioExecucaoQuery)
+            horarioExecucao = cursor5.fetchall()
+
+            informacoes = {
+                'Nome do Mecânico': [nomeMecanico],
+                'Número do Veículo': [placaVeiculo],
+                'Tipo da Ordem de Serviço': [ordemServico],
+                'Número da Ordem de Serviço': [tipoManutencao],
+                'Horário': [horarioExecucao]
+            }
+
+            dataframe = pandas.DataFrame(informacoes)
+
+            # Salvando o DataFrame em um arquivo Excel
+            dataframe.to_excel(r'c:\Users\u24317\Desktop\PP\darocaProjeto\Planilha.xlsx', index=False)
+            print("DataFrame salvo na planilha Excel 'Planilha.xlsx'")
+
+        except Exception as e:
+                print(f"Erro ao gerar planilha: {str(e)}")
+    else:
+        print("Não foi possível conectar ao banco de dados.")
+
+    # Salvando o DataFrame em um arquivo CSV
+    # df.to_excel('', index=False)
+    # print("DataFrame salvo no arquivo CSV 'dados.csv'")
+
+def escolhaOrdemServico():
+    if connect():
         cursor = connection.cursor()
 
-        command= "INSERT INTO crud.contatos "+\
-                 "(nome,aniversario,endereco,telefone,celular,email) "+\
-                 "VALUES"+\
-                f"('{nome}','{aniversario}','{endereco}','{telefone}','{celular}','{email}')"
+        # Exemplo de consulta para buscar a próxima ordem de serviço disponível
+        cursor.execute("SELECT numeroOrdemServico FROM DadosDaRoca.ordemServico")
+        resultado = cursor.fetchone()
 
-        cursor.execute(command)
-        cursor.commit()
-        print("Cadastro realizado com sucesso!")
-    except:
-        print("Cadastro mal sucedido!")
-
-
-def procurar ():
-    digitouDireito=False
-    while not digitouDireito:
-        nome=input('\nNome.......: ')
-
-        resposta=esta_cadastrado(nome)
-        sucessoNoAcessoAoBD = resposta[0]
-        dados_selecionados  = resposta[1]
-
-        if not sucessoNoAcessoAoBD:
-            print("Sem conexão com o BD!")
-        elif dados_selecionados==[]:
-            print ('Pessoa inexistente - Favor redigitar...')
+        if resultado:
+            return resultado[0]  # Retorna o número da ordem de serviço encontrada
         else:
-            digitouDireito=True
-                
-        print('Aniversario:',dados_selecionados[0][2])
-        print('Endereco...:',dados_selecionados[0][3])
-        print('Telefone...:',dados_selecionados[0][4])
-        print('Celular....:',dados_selecionados[0][5])
-        print('e-mail.....:',dados_selecionados[0][6])
-
-def atualizar ():
-    print('Opção não implementada!')
-    # Ficar mostrando um menu oferecendo as opções de atualizar aniversário, ou
-    # endereco, ou telefone, ou celular, ou email, ou finalizar as
-    # atualizações; ficar pedindo para digitar a opção até digitar uma
-    # opção válida; realizar a atulização solicitada; até ser escolhida a
-    # opção de finalizar as atualizações.
-    # USAR A FUNÇÃO opcaoEscolhida, JÁ IMPLEMENTADA, PARA FAZER O MENU
-
-def listar ():
-    cursor = connection.cursor()
-
-    command= 'SELECT * FROM crud.contatos'
-    
-    cursor.execute(command)
-    cursor.commit()
-    
-def excluir ():
-    digitouDireito=False
-    while not digitouDireito:
-        nome=input('\nNome.......: ')
-
-        resposta=esta_cadastrado(nome)
-        sucessoNoAcessoAoBD = resposta[0]
-        dados_selecionados  = resposta[1]
-
-        if not sucessoNoAcessoAoBD:
-            print("Sem conexão com o BD!")
-        elif dados_selecionados==[]:
-            print ('Pessoa inexistente - Favor redigitar...')
-        else:
-            digitouDireito=True
-            
-    print('Aniversario:',dados_selecionados[0][2])
-    print('Endereco...:',dados_selecionados[0][3])
-    print('Telefone...:',dados_selecionados[0][4])
-    print('Celular....:',dados_selecionados[0][5])
-    print('e-mail.....:',dados_selecionados[0][6])
-    
-    resposta=umTexto('Deseja realmente excluir? ','Você deve digitar S ou N',['s','S','n','N'])
-    
-    if resposta in ['s','S']:
-        try:
-            #cursor e um objeto que permite que 
-            #nosso programa executre comandos SQL
-            #la no sevidor
-            cursor = connection.cursor()
-
-            command= "DELETE FROM crud.contatos "+\
-                    f"WHERE nome='{nome}'"
-
-            cursor.execute(command)
-            cursor.commit()
-            print('Remoção realizada com sucesso!')
-        except:
-            print("Remoção mal sucedida!")
+            print("Nenhuma há nenhuma ordem de serviço disponível no momento.")
+            return None  # Ou outro valor para indicar que não há ordens disponíveis
     else:
-        print('Remoção não realizada!')
+        print("Não foi possível conectar ao banco de dados.")
+        return None
 
+# Função para executar a lógica principal do programa
+def container():
+    if connect():
+        cursor = connection.cursor()
 
-# daqui para cima, definimos subprogramas (ou módulos, é a mesma coisa)
-# daqui para baixo, implementamos o programa (nosso CRUD, C=create(inserir), R=read(recuperar), U=update(atualizar), D=delete(remover,apagar)
+        # Exemplo de busca de dados do banco de dados
+        cursor.execute("SELECT numeroOrdemServico FROM DadosDaRoca.ordemServico")
+        ordemServico = [row[0] for row in cursor.fetchall()]
 
-apresenteSe()
+        cursor.execute("SELECT nomeMecanico FROM DadosDaRoca.mecanico")
+        mecanico = [row[0] for row in cursor.fetchall()]
 
-sucessoNoAcessoAoBD = connect()
-if not sucessoNoAcessoAoBD:
-    print("Falha ao conectar-se ao SQL Severver")
-    exit() # encerra o programa
+        centroDistOS = '1'
+        centroDistMEC = '2'
+        horasTrabalhadas = [0] * len(mecanico)  # Inicializa as horas trabalhadas de cada mecânico
+        roteiro = [[] for _ in range(len(mecanico))]  # Planilha final
+        tempoOrdemServico = 2  # Tempo estimado de cada ordem de serviço (exemplo fixo)
 
-menu=['Incluir Contato',\
-      'Procurar Contato',\
-      'Atualizar Contato',\
-      'Listar Contatos',\
-      'Excluir Contato',\
-      'Sair do Programa']
+        while max(horasTrabalhadas) < 8:  # Enquanto nenhum mecânico ultrapassar 8 horas de trabalho
+            for i, mecanico in enumerate(mecanico):
+                ordemServico = escolhaOrdemServico()
+                if centroDistOS != centroDistMEC:
+                    continue
+                if horasTrabalhadas[i] >= 8:
+                    continue
+                if horasTrabalhadas[i] + tempoOrdemServico[ordemServico - 1] > 8:
+                    continue
+                if 3 <= horasTrabalhadas[i] <= 5:  # Se o mecânico tem entre 3 e 5 horas de trabalho disponíveis
+                    roteiro[i].append("Almoço")
+                    horasTrabalhadas[i] += 1  # Incrementa 1 hora por conta do almoço
+                roteiro[i].append(ordemServico)  # Registra a ordem de serviço no roteiro
+                horasTrabalhadas[i] += tempoOrdemServico[ordemServico - 1]  # Adiciona o tempo estimado da ordem de serviço
 
-opcao=666
-while opcao!=6:
-    opcao = int(opcaoEscolhida(menu))
+        # Exibe o roteiro final de cada mecânico
+        for i, m in enumerate(mecanico):
+            print("Mecânico", m, ":", roteiro[i])
 
-    if opcao==1:
-        incluir()
-    elif opcao==2:
-        procurar()
-    elif opcao==3:
-        atualizar()
-    elif opcao==4:
-        listar()
-    elif opcao==5:
-        excluir()
+        # Gerar planilha (ainda precisa ser implementado)
+        # planilha()
 
-connection.close()
-      
-print('OBRIGADO POR USAR ESTE PROGRAMA!')
+    else:
+        print("Não foi possível conectar ao banco de dados.")
+
+if __name__ == "__main__":
+    container()
