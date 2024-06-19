@@ -122,9 +122,6 @@ def container():
         for i, m in enumerate(mecanico):
             print("Mecânico", m, ":", roteiro[i])
 
-        # Gerar planilha (ainda precisa ser implementado)
-        # planilha()
-
     else:
         print("Não foi possível conectar ao banco de dados.")
 
